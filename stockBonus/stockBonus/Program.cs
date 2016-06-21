@@ -11,7 +11,7 @@ namespace stockBonus
         static void Main(string[] args)
         {
              GetStocks myList = new GetStocks(20160601,20160630,"000016.SH");
-           
+            GetBonus bonus = new GetBonus();
         }
     }
 }
