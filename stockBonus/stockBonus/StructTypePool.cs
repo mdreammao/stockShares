@@ -6,11 +6,19 @@ using System.Threading.Tasks;
 
 namespace stockBonus
 {
+    struct stockEquity
+    {
+        public string code, name;
+        public int date;
+        public double freeEquity,equity,closePrice,percentage;
+    }
+
     struct stockBonus
     {
         public string code,name;
         public int firstDate,secondDate;
         public double firstBonus,secondBonus;
+        public double firstPoint, secondPoint;
         public string progress,firstStatus,secondStatus;
         public int planDate;
         public double planBonus;

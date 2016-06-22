@@ -21,242 +21,338 @@ namespace stockBonus
 
         static private TradeDays myTradeDays = new TradeDays(20150101, 20171231);
 
-        private int yesterday = Convert.ToInt32(DateTime.Now.AddDays(-1).ToString("yyyyMMdd"));
+        private int yesterday =TradeDays.GetPreviousTradeDay(Convert.ToInt32(DateTime.Now.ToString("yyyyMMdd")));
 
         static public SortedDictionary<string, stockBonus> bonusList;
 
         static public SortedDictionary<string, stockBonus> evaluateBonusList=new SortedDictionary<string, stockBonus>();
 
+        private SortedDictionary<string, stockBonus> evaluatePointList = new SortedDictionary<string, stockBonus>();
+
+        private string indexName;
 
 
-
-        public GetBonus()
+        public GetBonus(string indexName)
         {
+            this.indexName = indexName;
             if (bonusList==null)
             {
                 GetBonusPlan();
                 EvaluateBonus();
             }
-            printBonus();
+            GetStockPercentage equity = new GetStockPercentage(indexName);
+            EvaluatePoint();
+            PrintBonus();
 
         }
-        private void printBonus()
+        private void EvaluatePoint()
+        {
+            SortedDictionary<string, stockEquity> equityList = GetStockPercentage.equityList;
+            List<string> myKeys = new List<string>();
+            foreach (var key in evaluateBonusList)
+            {
+                myKeys.Add(key.Key);
+            }
+            foreach (var item in myKeys)
+            {
+                stockBonus bonus = evaluateBonusList[item];
+                bool influence = false;
+                if ((bonus.firstDate>yesterday || bonus.firstDate==0) && bonus.firstBonus>0 && GetStocks.stockList[item].existsDate[GetStocks.stockList[item].existsDate.Count() - 1] > yesterday)
+                {
+                    List<stockFormat> list = GetStocks.getConstituentStock(bonus.firstDate);
+                    if (bonus.firstDate == 0)
+                    {
+                        list = GetStocks.getConstituentStock(GetStocks.stockList[item].existsDate[GetStocks.stockList[item].existsDate.Count() - 1]);
+                    }
+                    bonus.firstPoint = GetStockPoint(list, equityList, bonus.code,bonus.firstBonus);
+                    influence = true;
+                }
+                if ((bonus.secondDate>yesterday|| bonus.secondDate==0) && bonus.secondBonus>0 && GetStocks.stockList[item].existsDate[GetStocks.stockList[item].existsDate.Count() - 1] > yesterday)
+                {
+                    List<stockFormat> list = GetStocks.getConstituentStock(bonus.secondDate);
+                    if (bonus.secondDate == 0)
+                    {
+                        list = GetStocks.getConstituentStock(GetStocks.stockList[item].existsDate[GetStocks.stockList[item].existsDate.Count() - 1]);
+                    }
+                    bonus.secondPoint = GetStockPoint(list, equityList,bonus.code, bonus.secondBonus);
+                    influence = true;
+                }
+                if (influence==true)
+                {
+                    evaluatePointList.Add(bonus.code, bonus);
+                }
+            }
+
+        }
+
+        private double GetStockPoint(List<stockFormat> list, SortedDictionary<string, stockEquity> equityList,string code,double bonus)
+        {
+            double total = 0;
+            foreach (var item in list)
+            {
+                total += equityList[item.code].percentage * equityList[item.code].equity * equityList[item.code].closePrice;
+            }
+            double divisor = total/equityList[indexName].closePrice;
+            double point = equityList[code].percentage * equityList[code].equity*bonus/divisor;
+            return point;
+        }
+
+        private void PrintBonus()
         {
             DataTable dt = new DataTable();
             dt.Columns.Add("代码", System.Type.GetType("System.String"));
             dt.Columns.Add("股票", System.Type.GetType("System.String"));
             dt.Columns.Add("分红时间", System.Type.GetType("System.String"));
             dt.Columns.Add("分红利息", System.Type.GetType("System.String"));
+            dt.Columns.Add("分红点数", System.Type.GetType("System.String"));
             dt.Columns.Add("备注", System.Type.GetType("System.String"));
-            dt.Columns.Add("分红时间2", System.Type.GetType("System.String"));
-            dt.Columns.Add("分红利息2", System.Type.GetType("System.String"));
-            dt.Columns.Add("备注2", System.Type.GetType("System.String"));
+         
 
-            foreach (var item in evaluateBonusList)
+            foreach (var item in evaluatePointList)
             {
                 stockBonus bonus = item.Value;
-                DataRow row = dt.NewRow();
-                row[0] = bonus.code;
-                row[1] = bonus.name;
-                row[2] = bonus.firstDate.ToString();
-                row[3] = bonus.firstBonus.ToString("f4");
-                row[4] = bonus.firstStatus;
-                row[5] = bonus.secondDate.ToString();
-                row[6] = bonus.secondBonus.ToString("f4");
-                row[7] = bonus.secondStatus;
-                dt.Rows.Add(row);
+                if ((bonus.firstDate > yesterday || bonus.firstDate == 0) && bonus.firstBonus > 0 && GetStocks.stockList[item.Key].existsDate[GetStocks.stockList[item.Key].existsDate.Count()-1]>yesterday)
+                {
+                    DataRow row = dt.NewRow();
+                    row[0] = bonus.code;
+                    row[1] = bonus.name;
+                    row[2] = bonus.firstDate.ToString();
+                    row[3] = bonus.firstBonus.ToString("f4");
+                    row[4] = bonus.firstPoint.ToString("f4");
+                    row[5] = bonus.firstStatus;
+                    dt.Rows.Add(row);
+                }
+                if ((bonus.secondDate > yesterday || bonus.secondDate == 0) && bonus.secondBonus > 0 && GetStocks.stockList[item.Key].existsDate[GetStocks.stockList[item.Key].existsDate.Count() - 1] > yesterday)
+                {
+                    DataRow row = dt.NewRow();
+                    row[0] = bonus.code;
+                    row[1] = bonus.name;
+                    row[2] = bonus.secondDate.ToString();
+                    row[3] = bonus.secondBonus.ToString("f4");
+                    row[4] = bonus.secondPoint.ToString("f4");
+                    row[5] = bonus.secondStatus;
+                    dt.Rows.Add(row);
+                }
             }
-            CsvApplication.SaveCSV(dt, "bonus.csv");
+            CsvApplication.SaveCSV(dt, "bonus"+yesterday.ToString()+".csv");
         }
+
 
         private void EvaluateBonus()
         {
             foreach (var item in GetStocks.stockList)
             {
-                stockBonus bonus =bonusList[item.Key];
+                stockBonus bonus = bonusList[item.Key];
                 List<int> dateList = new List<int>();
                 List<double> historicalBonusList = new List<double>();
                 WindData wd = w.wset("corporationaction", "startdate=2014-01-01;enddate=2020-06-20;windcode=" + bonus.code + ";field=ex_dividend_date,wind_code,sec_name,cash_payout_ratio,ex_dividend_note");
                 object[] stockList = wd.data as object[];
-                int num = (stockList==null?0:stockList.Length / 5);
+                int num = (stockList == null ? 0 : stockList.Length / 5);
                 for (int i = 0; i < num; i++)
                 {
                     string[] dateStr = Convert.ToString(stockList[i * 5]).Split(new char[] { '/', ' ' });
-                    int date= Convert.ToInt32(dateStr[0]) * 10000 + Convert.ToInt32(dateStr[1]) * 100 + Convert.ToInt32(dateStr[2]);
-                    double planBonus= (stockList[i * 5 + 3] == null ? 0 : (double)stockList[i * 5 + 3]);
+                    int date = Convert.ToInt32(dateStr[0]) * 10000 + Convert.ToInt32(dateStr[1]) * 100 + Convert.ToInt32(dateStr[2]);
+                    double planBonus = (stockList[i * 5 + 3] == null ? 0 : (double)stockList[i * 5 + 3]);
                     dateList.Add(date);
                     historicalBonusList.Add(planBonus);
                 }
                 //判断去年是否有2次分红
-                int frequency = 0;
-                foreach (var date in dateList)
+                int thisYear=0,lastYear = 0;
+                for (int i = 0; i < dateList.Count; i++)
                 {
-                    if (date/10000+1==yesterday/10000)
+                    int date = dateList[i];
+                    double myBonus = historicalBonusList[i];
+                    if (date / 10000 + 1 == yesterday / 10000  && myBonus>0)
                     {
-                        frequency += 1;
+                        lastYear += 1;
+                    }
+                    if (date / 10000 == yesterday / 10000 && myBonus > 0)
+                    {
+                        thisYear += 1;
                     }
                 }
-                if (frequency==1)//去年仅有1次分红，一般来说今年也是1次分红
+                if (lastYear==1 &&　thisYear==1)
                 {
-                    if (dateList[dateList.Count()-1]/10000==yesterday/10000) //今年分红已经明确
-                    {
-                        bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 1];
-                        bonus.firstDate = dateList[dateList.Count() - 1];
-                        if (TradeDays.GetNextTradeDay(yesterday)>=bonus.firstDate)
-                        {
-                            bonus.firstStatus = "分过了";
-                        }
-                        else
-                        {
-                            bonus.firstStatus = "明确";
-                        }
-                    }
-                    if (dateList[dateList.Count() - 1] / 10000 +1 == yesterday / 10000) //今年分红未明确
+                    bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 1];
+                    bonus.firstDate = dateList[dateList.Count() - 1];
+                    bonus.firstStatus = "明确";
+                }
+                if (lastYear==1 && thisYear==0)
+                {
+                    if (bonus.planBonus!=0)
                     {
                         bonus.firstBonus = bonus.planBonus;
                         bonus.firstDate = dateList[dateList.Count() - 1] + 10000;
-                        bonus.firstStatus = "日期未明确";
-                    }
-                }
-                if (frequency==0) //两种情况去年未分红，或者最近刚上市
-                {
-                    if (num>0) //以前有分红，判断是否亏损而没有分红预案
-                    {
-                        string str = (yesterday / 10000).ToString() + "-01-10";
-                        WindData eps = w.wsd(bonus.code, "eps_ttm", "ED-5TD", str, "");
-                        double [] epsList =eps.data as double[];
-                        double myEps = epsList[0];
-                        if (myEps<0)
-                        {
-                            bonus.firstStatus = "去年亏损";
-                        }
-                    }
-                }
-                if (frequency==2)  //年内分红具有两次的
-                {
-                    int frequencyThisYear = 0;
-                    foreach (var date in dateList)
-                    {
-                        if (date / 10000  == yesterday / 10000)
-                        {
-                            frequencyThisYear += 1;
-                        }
-                    }
-                    if (frequencyThisYear==2)  //今年第二次分红已明确
-                    {
-                        if (dateList[dateList.Count()-2]<=yesterday && dateList[dateList.Count() - 1]>yesterday)  //年内第一次分红已经分过但是第二次分红未分
-                        {
-                            bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 1];
-                            bonus.firstDate = dateList[dateList.Count() - 1];
-                            bonus.firstStatus = "明确";
-                        }
-                        if (dateList[dateList.Count() - 1] <= yesterday) //年内两次分红都分过了
-                        {
-                            bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 1];
-                            bonus.firstDate = dateList[dateList.Count() - 1];
-                            bonus.firstStatus = "分过了";
-                        }
-                        if (dateList[dateList.Count() - 2] > yesterday) //年内两次分红都没有分
-                        {
-                            bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 2];
-                            bonus.firstDate = dateList[dateList.Count() - 2];
-                            bonus.firstStatus = "明确";
-                            bonus.secondBonus = historicalBonusList[historicalBonusList.Count() - 1];
-                            bonus.secondDate = dateList[dateList.Count() - 1];
-                            bonus.secondStatus = "明确";
-                        }
-                    }
-                    else if(frequencyThisYear == 1) //第一次分红已明确，但第二次分红未明确
-                    {
-                        bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 1];
-                        bonus.firstDate = dateList[dateList.Count() - 1];
-                        bonus.firstStatus = "明确";
-                        bonus.secondBonus = bonus.planBonus;
-                        bonus.secondDate = dateList[dateList.Count() - 2] + 10000;
-                        bonus.secondStatus = "日期未明确";
-                    }
-                }
-                if (bonus.firstStatus != null && bonus.firstBonus == 0 && num > 0)  //预测年内第一次分红
-                {
-                    string str = (yesterday / 10000).ToString() + "-01-10";
-                    WindData eps = w.wsd(bonus.code, "eps_ttm", "ED-5TD", str, "");
-                    double[] epsList = eps.data as double[];
-                    double myEpsThisYear = epsList[0];
-                    str = (yesterday / 10000-1).ToString() + "-01-10";
-                    eps = w.wsd(bonus.code, "eps_ttm", "ED-5TD", str, "");
-                    epsList = eps.data as double[];
-                    double myEpsLastYear = epsList[0];
-                    for (int i = 0; i < dateList.Count - 1; i++)  //去年第一次分红
-                    {
-                        if (dateList[i] / 10000 + 1 == yesterday / 10000)
-                        {
-                            if (bonus.firstDate == 0)
-                            {
-                                bonus.firstDate = dateList[i] + 10000;
-                            }
-                            bonus.firstBonus = historicalBonusList[i] / myEpsLastYear * myEpsThisYear;
-                            bonus.firstStatus = "预测";
-                            break;
-                        }
-                    }
-                }
-                if (bonus.secondStatus != null && bonus.secondBonus == 0 && num > 0)  //预测年内第二次分红
-                {
-                    string str = (yesterday / 10000).ToString() + "-01-10";
-                    WindData eps = w.wsd(bonus.code, "eps_ttm", "ED-5TD", str, "");
-                    double[] epsList = eps.data as double[];
-                    double myEpsThisYear = epsList[0];
-                    str = (yesterday / 10000 - 1).ToString() + "-01-10";
-                    eps = w.wsd(bonus.code, "eps_ttm", "ED-5TD", str, "");
-                    epsList = eps.data as double[];
-                    double myEpsLastYear = (epsList==null?0:epsList[0]);
-                    int times = 0;
-                    if (myEpsLastYear==0) //没有去年数据，去年刚上市
-                    {
-                        for (int i = 0; i < dateList.Count - 1; i++)  //去年第一次分红
-                        {
-                            if (dateList[i] / 10000 + 1 == yesterday / 10000 && times == 0)
-                            {
-                                times += 1;
-                                continue;
-                            }
-                            if (dateList[i] / 10000 + 1 == yesterday / 10000 && times == 1)
-                            {
-                                if (bonus.secondDate == 0)
-                                {
-                                    bonus.secondDate = dateList[i] + 10000;
-                                }
-                                bonus.secondBonus = historicalBonusList[i] / historicalBonusList[i-1]*historicalBonusList[i+1];
-                                bonus.secondStatus = "预测";
-                                break;
-                            }
-                        }
+                        bonus.firstStatus = "有预案但日期未明确";
                     }
                     else
                     {
-                        for (int i = 0; i < dateList.Count - 1; i++)  //去年第一次分红
+                        
+                        string str = DateTime.ParseExact(yesterday.ToString(), "yyyyMMdd", null).ToString("yyyy-MM-dd");
+                        WindData eps = w.wsd(bonus.code, "eps_ttm", "ED-0TD", str, "Days=Alldays");
+                        double[] epsList = eps.data as double[];
+                        double thisEps = epsList[0];
+                        if (thisEps < 0)
                         {
-                            if (dateList[i] / 10000 + 1 == yesterday / 10000 && times == 0)
+                            bonus.firstStatus = "去年亏损无分红";
+                            bonus.firstBonus = 0;
+                            bonus.firstDate = 0;
+                        }
+                        else
+                        {
+                            str = DateTime.ParseExact((yesterday -10000).ToString(), "yyyyMMdd", null).ToString("yyyy-MM-dd");
+                            eps = w.wsd(bonus.code, "eps_ttm", "ED-0TD", str, "Days=Alldays");
+                            epsList = eps.data as double[];
+                            double lastEps = (epsList==null?0:epsList[0]);
+                            if (lastEps==0)
                             {
-                                times += 1;
-                                continue;
+                                bonus.firstStatus = "去年无EPS数据无法预测";
+                                bonus.firstBonus = 0;
+                                bonus.firstDate = 0;
                             }
-                            if (dateList[i] / 10000 + 1 == yesterday / 10000 && times == 1)
+                            else
                             {
-                                if (bonus.secondDate == 0)
-                                {
-                                    bonus.secondDate = dateList[i] + 10000;
-                                }
-                                bonus.secondBonus = historicalBonusList[i] / myEpsLastYear * myEpsThisYear;
-                                bonus.secondStatus = "预测";
-                                break;
+                                bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 1] / lastEps * thisEps;
+                                bonus.firstDate = dateList[dateList.Count() - 1] + 10000;
+                                bonus.firstStatus = "无预案按上次分红预测";
                             }
                         }
+                    }
+                }
+                if (lastYear==2 && thisYear==2)
+                {
+                    bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 2];
+                    bonus.firstDate = dateList[dateList.Count() - 2];
+                    bonus.firstStatus = "明确";
+                    bonus.secondBonus = historicalBonusList[historicalBonusList.Count() - 1];
+                    bonus.secondDate = dateList[dateList.Count() - 1];
+                    bonus.secondStatus = "明确";
+                }
+                if (lastYear==2 && thisYear==1)
+                {
+                    bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 1];
+                    bonus.firstDate = dateList[dateList.Count() - 1];
+                    bonus.firstStatus = "明确";
+                    if (bonus.planBonus != 0)
+                    {
+                        bonus.secondBonus = bonus.planBonus;
+                        bonus.secondDate = dateList[dateList.Count() - 2] + 10000;
+                        bonus.secondStatus = "有预案但日期未明确";
+                    }
+                    else
+                    {
+                        bonus.secondDate = dateList[dateList.Count() - 2] + 10000;
+                        bonus.secondStatus = "无预案按上次分红预测";
+                        bonus.secondBonus = historicalBonusList[historicalBonusList.Count() - 2] / historicalBonusList[historicalBonusList.Count() - 3] * historicalBonusList[historicalBonusList.Count() - 1];
+                    }
+                }
+                if (lastYear==2 && thisYear==0)
+                {
+                    if (bonus.planBonus != 0)
+                    {
+                        bonus.firstBonus = bonus.planBonus;
+                        bonus.firstDate = dateList[dateList.Count() - 2] + 10000;
+                        bonus.firstStatus = "有预案但日期未明确";
+                        bonus.secondDate = dateList[dateList.Count() - 1] + 10000;
+                        bonus.secondStatus = "无预案按上次分红预测";
+                        bonus.secondBonus = historicalBonusList[historicalBonusList.Count() - 1] / historicalBonusList[historicalBonusList.Count() - 2] * bonus.planBonus;
+                    }
+                    else
+                    {
+                        string str = DateTime.ParseExact(yesterday.ToString(), "yyyyMMdd", null).ToString("yyyy-MM-dd");
+                        WindData eps = w.wsd(bonus.code, "eps_ttm", "ED-0TD", str, "Days=Alldays");
+                        double[] epsList = eps.data as double[];
+                        double thisEps = epsList[0];
+                        if (thisEps < 0)
+                        {
+                            bonus.firstStatus = "去年亏损无分红";
+                            bonus.firstBonus = 0;
+                            bonus.firstDate = 0;
+                            bonus.secondStatus = "去年亏损无分红";
+                            bonus.secondBonus = 0;
+                            bonus.secondDate = 0;
+                        }
+                        else
+                        {
+                            str = DateTime.ParseExact((yesterday - 10000).ToString(), "yyyyMMdd", null).ToString("yyyy-MM-dd");
+                            eps = w.wsd(bonus.code, "eps_ttm", "ED-0TD", str, "Days=Alldays");
+                            epsList = eps.data as double[];
+                            double lastEps = (epsList == null ? 0 : epsList[0]);
+                            if (lastEps == 0)
+                            {
+                                bonus.firstStatus = "去年无EPS数据无法预测";
+                                bonus.firstBonus = 0;
+                                bonus.firstDate = 0;
+                                bonus.secondStatus = "去年无EPS数据无法预测";
+                                bonus.secondBonus = 0;
+                                bonus.secondDate = 0;
+                            }
+                            else
+                            {
+                                bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 2] / lastEps * thisEps;
+                                bonus.firstDate = dateList[dateList.Count() - 2] + 10000;
+                                bonus.firstStatus = "无预案按上次分红预测";
+                                bonus.secondBonus = historicalBonusList[historicalBonusList.Count() - 1] / lastEps * thisEps;
+                                bonus.secondDate = dateList[dateList.Count() - 1] + 10000;
+                                bonus.secondStatus = "无预案按上次分红预测";
+                            }
+                        }
+                    }
+                }
+                if (lastYear==0&& thisYear==0)
+                {
+                    if (bonus.planBonus > 0)
+                    {
+                        bonus.firstBonus = bonus.planBonus;
+                        bonus.firstDate = 0;
+                        bonus.firstStatus = "有预案但日期未明确";
+                    }
+                    else
+                    {
+                        bonus.firstStatus = "无预案无分红数据";
+                    }
+                }
+                if (lastYear==0 && thisYear==1)
+                {
+                    bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 1];
+                    bonus.firstDate = dateList[dateList.Count() - 1];
+                    bonus.firstStatus = "明确";
+                    if (bonus.planBonus>0)
+                    {
+                        bonus.secondBonus = bonus.planBonus;
+                        bonus.secondDate = 0;
+                        bonus.secondStatus = "有预案但日期未明确";
+                    }
+                }
+                if (lastYear==0 &&　thisYear==2)
+                {
+                    bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 2];
+                    bonus.firstDate = dateList[dateList.Count() - 2];
+                    bonus.firstStatus = "明确";
+                    bonus.secondBonus = historicalBonusList[historicalBonusList.Count() - 1];
+                    bonus.secondDate = dateList[dateList.Count() - 1];
+                    bonus.secondStatus = "明确";
+                }
+                if (bonus.firstStatus== "有预案但日期未明确" || bonus.firstStatus == "无预案按上次分红预测")
+                {
+                    if (bonus.firstDate<=yesterday && bonus.firstDate!=0)
+                    {
+                        bonus.firstDate = 0;
+                        bonus.firstStatus += "预测日期已过";
+                    }
+                }
+                if (bonus.secondStatus == "有预案但日期未明确" || bonus.secondStatus == "无预案按上次分红预测")
+                {
+                    if (bonus.secondDate <= yesterday && bonus.secondDate!=0)
+                    {         
+                        bonus.secondDate = 0;
+                        bonus.secondStatus += "预测日期已过";
                     }
                 }
                 evaluateBonusList.Add(bonus.code, bonus);
             }
         }
+
 
         private void GetBonusPlan()
         {
