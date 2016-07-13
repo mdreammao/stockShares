@@ -27,7 +27,8 @@ namespace stockBonus
         private SortedDictionary<string, stockEquity> GetStockData()
         {
            SortedDictionary<string, stockEquity> myData = new SortedDictionary<string, stockEquity>();
-            string yesterdayStr = DateTime.ParseExact(yesterday.ToString(), "yyyyMMdd", null).ToString("yyyy-MM-dd"); 
+            string yesterdayStr = DateTime.ParseExact(yesterday.ToString(), "yyyyMMdd", null).ToString("yyyy-MM-dd");
+            
             foreach (var item in GetStocks.stockList)
             {
                 string code = item.Key;

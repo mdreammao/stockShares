@@ -102,6 +102,7 @@ namespace stockBonus
             DataTable dt = new DataTable();
             dt.Columns.Add("代码", System.Type.GetType("System.String"));
             dt.Columns.Add("股票", System.Type.GetType("System.String"));
+            dt.Columns.Add("股权登记日", System.Type.GetType("System.String"));
             dt.Columns.Add("分红时间", System.Type.GetType("System.String"));
             dt.Columns.Add("分红利息", System.Type.GetType("System.String"));
             dt.Columns.Add("分红点数", System.Type.GetType("System.String"));
@@ -116,10 +117,11 @@ namespace stockBonus
                     DataRow row = dt.NewRow();
                     row[0] = bonus.code;
                     row[1] = bonus.name;
-                    row[2] = bonus.firstDate.ToString();
-                    row[3] = bonus.firstBonus.ToString("f4");
-                    row[4] = bonus.firstPoint.ToString("f4");
-                    row[5] = bonus.firstStatus;
+                    row[2] = bonus.firstRegisterDate.ToString();
+                    row[3] = bonus.firstDate.ToString();
+                    row[4] = bonus.firstBonus.ToString("f4");
+                    row[5] = bonus.firstPoint.ToString("f4");
+                    row[6] = bonus.firstStatus;
                     dt.Rows.Add(row);
                 }
                 if ((bonus.secondDate > yesterday || bonus.secondDate == 0) && bonus.secondBonus > 0 && GetStocks.stockList[item.Key].existsDate[GetStocks.stockList[item.Key].existsDate.Count() - 1] > yesterday)
@@ -127,19 +129,20 @@ namespace stockBonus
                     DataRow row = dt.NewRow();
                     row[0] = bonus.code;
                     row[1] = bonus.name;
-                    row[2] = bonus.secondDate.ToString();
-                    row[3] = bonus.secondBonus.ToString("f4");
-                    row[4] = bonus.secondPoint.ToString("f4");
-                    row[5] = bonus.secondStatus;
+                    row[2] = bonus.SecondRegisterDate.ToString();
+                    row[3] = bonus.secondDate.ToString();
+                    row[4] = bonus.secondBonus.ToString("f4");
+                    row[5] = bonus.secondPoint.ToString("f4");
+                    row[6] = bonus.secondStatus;
                     dt.Rows.Add(row);
                 }
             }
             CsvApplication.SaveCSV(dt, "bonus"+yesterday.ToString()+".csv");
         }
 
-
         private void EvaluateBonus()
         {
+            //利用万德wset的“分红送转”抓取数据
             foreach (var item in GetStocks.stockList)
             {
                 stockBonus bonus = bonusList[item.Key];
@@ -182,7 +185,7 @@ namespace stockBonus
                     if (bonus.planBonus!=0)
                     {
                         bonus.firstBonus = bonus.planBonus;
-                        bonus.firstDate = dateList[dateList.Count() - 1] + 10000;
+                        bonus.firstDate =TradeDays.GetRecentTradeDay(dateList[dateList.Count() - 1] + 10000);
                         bonus.firstStatus = "有预案但日期未明确";
                     }
                     else
@@ -213,7 +216,7 @@ namespace stockBonus
                             else
                             {
                                 bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 1] / lastEps * thisEps;
-                                bonus.firstDate = dateList[dateList.Count() - 1] + 10000;
+                                bonus.firstDate =TradeDays.GetRecentTradeDay(dateList[dateList.Count() - 1] + 10000);
                                 bonus.firstStatus = "无预案按上次分红预测";
                             }
                         }
@@ -236,12 +239,12 @@ namespace stockBonus
                     if (bonus.planBonus != 0)
                     {
                         bonus.secondBonus = bonus.planBonus;
-                        bonus.secondDate = dateList[dateList.Count() - 2] + 10000;
+                        bonus.secondDate =TradeDays.GetRecentTradeDay(dateList[dateList.Count() - 2] + 10000);
                         bonus.secondStatus = "有预案但日期未明确";
                     }
                     else
                     {
-                        bonus.secondDate = dateList[dateList.Count() - 2] + 10000;
+                        bonus.secondDate =TradeDays.GetRecentTradeDay(dateList[dateList.Count() - 2] + 10000);
                         bonus.secondStatus = "无预案按上次分红预测";
                         bonus.secondBonus = historicalBonusList[historicalBonusList.Count() - 2] / historicalBonusList[historicalBonusList.Count() - 3] * historicalBonusList[historicalBonusList.Count() - 1];
                     }
@@ -251,9 +254,9 @@ namespace stockBonus
                     if (bonus.planBonus != 0)
                     {
                         bonus.firstBonus = bonus.planBonus;
-                        bonus.firstDate = dateList[dateList.Count() - 2] + 10000;
+                        bonus.firstDate =TradeDays.GetRecentTradeDay(dateList[dateList.Count() - 2] + 10000);
                         bonus.firstStatus = "有预案但日期未明确";
-                        bonus.secondDate = dateList[dateList.Count() - 1] + 10000;
+                        bonus.secondDate =TradeDays.GetRecentTradeDay(dateList[dateList.Count() - 1] + 10000);
                         bonus.secondStatus = "无预案按上次分红预测";
                         bonus.secondBonus = historicalBonusList[historicalBonusList.Count() - 1] / historicalBonusList[historicalBonusList.Count() - 2] * bonus.planBonus;
                     }
@@ -290,10 +293,10 @@ namespace stockBonus
                             else
                             {
                                 bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 2] / lastEps * thisEps;
-                                bonus.firstDate = dateList[dateList.Count() - 2] + 10000;
+                                bonus.firstDate =TradeDays.GetRecentTradeDay(dateList[dateList.Count() - 2] + 10000);
                                 bonus.firstStatus = "无预案按上次分红预测";
                                 bonus.secondBonus = historicalBonusList[historicalBonusList.Count() - 1] / lastEps * thisEps;
-                                bonus.secondDate = dateList[dateList.Count() - 1] + 10000;
+                                bonus.secondDate =TradeDays.GetRecentTradeDay(dateList[dateList.Count() - 1] + 10000);
                                 bonus.secondStatus = "无预案按上次分红预测";
                             }
                         }
@@ -335,7 +338,7 @@ namespace stockBonus
                 }
                 if (bonus.firstStatus== "有预案但日期未明确" || bonus.firstStatus == "无预案按上次分红预测")
                 {
-                    if (bonus.firstDate<=yesterday && bonus.firstDate!=0)
+                    if (bonus.firstDate<=yesterday)
                     {
                         bonus.firstDate = 0;
                         bonus.firstStatus += "预测日期已过";
@@ -343,13 +346,57 @@ namespace stockBonus
                 }
                 if (bonus.secondStatus == "有预案但日期未明确" || bonus.secondStatus == "无预案按上次分红预测")
                 {
-                    if (bonus.secondDate <= yesterday && bonus.secondDate!=0)
+                    if (bonus.secondDate <= yesterday)
                     {         
                         bonus.secondDate = 0;
                         bonus.secondStatus += "预测日期已过";
                     }
                 }
                 evaluateBonusList.Add(bonus.code, bonus);
+            }
+
+            //预处理，默认除息除权日是分红的前一天
+            foreach (var item in GetStocks.stockList)
+            {
+                stockBonus bonus = evaluateBonusList[item.Key];
+                
+                if (bonus.firstDate > 0)
+                {
+                    bonus.firstRegisterDate = TradeDays.GetPreviousTradeDay(bonus.firstDate);
+                }
+                if (bonus.secondDate > 0)
+                {
+                    bonus.SecondRegisterDate = TradeDays.GetPreviousTradeDay(bonus.secondDate);
+                }
+                evaluateBonusList[item.Key] = bonus;
+            }
+
+
+                //利用万德接口wset的“分红实施”来获取股权登记日
+             string lastYearStr = (yesterday / 10000 - 1).ToString();
+            WindData register = w.wset("bonus", "orderby=报告期;year="+lastYearStr+";period=y1;sectorid=a001010100000000;field=wind_code,sec_name,shareregister_date,dividend_payment_date");
+            object[] stockList2 = register.data as object[];
+            int num2 = stockList2.Length / 4;
+            for (int i = 0; i < num2; i++)
+            {
+                string code= Convert.ToString(stockList2[i * 4]);
+                if (evaluateBonusList.ContainsKey(code))
+                {
+                    string[] date = Convert.ToString(stockList2[i * 4 + 3]).Split(new char[] { '/', ' ' });
+                    int planDate = Convert.ToInt32(date[0]) * 10000 + Convert.ToInt32(date[1]) * 100 + Convert.ToInt32(date[2]);
+                    stockBonus bonus = evaluateBonusList[code];
+                    if (planDate==bonus.firstDate)
+                    {
+                        date = Convert.ToString(stockList2[i * 4 + 2]).Split(new char[] { '/', ' ' });
+                        bonus.firstRegisterDate= Convert.ToInt32(date[0]) * 10000 + Convert.ToInt32(date[1]) * 100 + Convert.ToInt32(date[2]);
+                    }
+                    if(planDate == bonus.secondDate)
+                    {
+                        date = Convert.ToString(stockList2[i * 4 + 2]).Split(new char[] { '/', ' ' });
+                        bonus.SecondRegisterDate = Convert.ToInt32(date[0]) * 10000 + Convert.ToInt32(date[1]) * 100 + Convert.ToInt32(date[2]);
+                    }
+                    evaluateBonusList[code] = bonus;
+                }
             }
         }
 
@@ -358,6 +405,7 @@ namespace stockBonus
         {
             bonusList = new SortedDictionary<string, stockBonus>();
             w.start();
+            //利用万德wset的“分红预案”抓取数据
             WindData wd = w.wset("dividendproposal", "ordertype=1;startdate=2015-06-30;enddate=2020-12-31;sectorid=a001010100000000;field=wind_code,sec_name,progress,cash_dividend,fellow_preplandate");
             object[] stockList = wd.data as object[];
             int num = stockList.Length / 5;

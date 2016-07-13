@@ -22,6 +22,7 @@ namespace stockBonus
         public string progress,firstStatus,secondStatus;
         public int planDate;
         public double planBonus;
+        public int firstRegisterDate,SecondRegisterDate;
 
     }
     
