@@ -21,8 +21,8 @@ namespace stockBonus
 
         static private TradeDays myTradeDays = new TradeDays(20150101, 20171231);
 
-        private int yesterday =TradeDays.GetPreviousTradeDay(Convert.ToInt32(DateTime.Now.ToString("yyyyMMdd")));
-
+        //private int yesterday =TradeDays.GetPreviousTradeDay(Convert.ToInt32(DateTime.Now.ToString("yyyyMMdd")));
+        private int yesterday = 20170103;
         static public SortedDictionary<string, stockBonus> bonusList;
 
         static public SortedDictionary<string, stockBonus> evaluateBonusList=new SortedDictionary<string, stockBonus>();
@@ -192,7 +192,7 @@ namespace stockBonus
                     {
                         
                         string str = DateTime.ParseExact(yesterday.ToString(), "yyyyMMdd", null).ToString("yyyy-MM-dd");
-                        WindData eps = w.wsd(bonus.code, "eps_ttm", "ED-0TD", str, "Days=Alldays");
+                        WindData eps = w.wsd(bonus.code, "eps_ttm", "ED-0TD", str, "Days=Alldays");//利用EPS来估算分红
                         double[] epsList = eps.data as double[];
                         double thisEps = epsList[0];
                         if (thisEps < 0)
@@ -376,7 +376,7 @@ namespace stockBonus
              string lastYearStr = (yesterday / 10000 - 1).ToString();
             WindData register = w.wset("bonus", "orderby=报告期;year="+lastYearStr+";period=y1;sectorid=a001010100000000;field=wind_code,sec_name,shareregister_date,dividend_payment_date");
             object[] stockList2 = register.data as object[];
-            int num2 = stockList2.Length / 4;
+            int num2 = (stockList2==null?0:stockList2.Length / 4);
             for (int i = 0; i < num2; i++)
             {
                 string code= Convert.ToString(stockList2[i * 4]);

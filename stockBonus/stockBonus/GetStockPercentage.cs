@@ -28,11 +28,11 @@ namespace stockBonus
         {
            SortedDictionary<string, stockEquity> myData = new SortedDictionary<string, stockEquity>();
             string yesterdayStr = DateTime.ParseExact(yesterday.ToString(), "yyyyMMdd", null).ToString("yyyy-MM-dd");
-            
+            string firstDate = "2016-01-01";
             foreach (var item in GetStocks.stockList)
             {
                 string code = item.Key;
-                WindData wd = w.wsd(code, "close,free_float_shares,float_a_shares", "ED-0D", yesterdayStr, "Days=Alldays");
+                WindData wd = w.wsd(code, "close,free_float_shares,float_a_shares", "ED-0D", firstDate, "Days=Alldays");
                 double[] stockList = wd.data as double[];
                 int num = (stockList == null ? 0 : stockList.Length / 3);
                 if (num==1)
@@ -69,7 +69,7 @@ namespace stockBonus
                 }
             }
 
-            WindData wd2 = w.wsd(indexName, "close,free_float_shares,float_a_shares", "ED-0D", yesterdayStr, "Days=Alldays");
+            WindData wd2 = w.wsd(indexName, "close,free_float_shares,float_a_shares", "ED-0D", firstDate, "Days=Alldays");
             double[] stockList2 = wd2.data as double[];
              double num2 = (stockList2 == null ? 0 : stockList2.Length / 3);
             if (num2 == 1)
