@@ -25,7 +25,7 @@ namespace stockBonus
         /// <summary>
         /// 记录指数的成分股。
         /// </summary>
-        static public Dictionary<int,stockFormat> stockList;
+        static public Dictionary<string,stockFormat> stockList;
         /// <summary>
         /// 记录指定日期。
         /// </summary>
@@ -34,14 +34,7 @@ namespace stockBonus
         /// 记录指定的指数名称。
         /// </summary>
         public string indexName;
-        /// <summary>
-        /// 记录今日的指数成分股。
-        /// </summary>
-        public List<stockFormat> nowStockList = new List<stockFormat>();
-        /// <summary>
-        /// 记录明日的指数成分股。
-        /// </summary>
-        public List<stockFormat> tomorrowStockList = new List<stockFormat>();
+  
 
         /// <summary>
         /// 构造函数
@@ -56,23 +49,21 @@ namespace stockBonus
             {
                 myTradeDays = new TradeDays(startDate, endDate);
             }
-            w.start();
             if (stockList==null)
             {
+                w.start();
                 stockList = getExitsStocks();
             }
-            nowStockList = getConstituentStock(20160608);
-            tomorrowStockList = getNextConstituentStock(20160608);
         }
 
         /// <summary>
         /// 根据程序运行日期，获取截止至昨日的指数成分股的列表
         /// </summary>
         /// <returns>指数成分股列表</returns>
-        private Dictionary<int, stockFormat> getExitsStocks()
+        private Dictionary<string, stockFormat> getExitsStocks()
         {
-            Dictionary<int,stockFormat> list = new Dictionary<int, stockFormat>();
-            int yesterday=Convert.ToInt32(DateTime.Now.AddDays(-1).ToString("yyyyMMdd"));
+            Dictionary<string,stockFormat> list = new Dictionary<string, stockFormat>();
+            int yesterday = TradeDays.GetPreviousTradeDay(Convert.ToInt32(DateTime.Now.ToString("yyyyMMdd")));
             foreach (int day in myTradeDays.myTradeDays)
             {
                 string todayStr = DateTime.ParseExact(day.ToString(), "yyyyMMdd", null).ToString("yyyy-MM-dd");
@@ -86,8 +77,7 @@ namespace stockBonus
                     for (int i = 0; i < num; i++)
                     {
                         stockFormat myStock = new stockFormat();
-                        myStock.market = Convert.ToString(stockList[i * 3 + 1]).Substring(7, 2);
-                        myStock.code =Convert.ToInt32(Convert.ToString(stockList[i * 3 + 1]).Substring(0, 6));
+                        myStock.code =Convert.ToString(stockList[i * 3 + 1]);
                         myStock.name = (string)stockList[i * 3 + 2];
                         if (list.ContainsKey(myStock.code)==false)
                         {
@@ -125,8 +115,7 @@ namespace stockBonus
                 for (int i = 0; i < num; i++)
                 {
                     stockFormat myStock = new stockFormat();
-                    myStock.market = Convert.ToString(stockList[i * 3 + 1]).Substring(7, 2);
-                    myStock.code =Convert.ToInt32(Convert.ToString(stockList[i * 3 + 1]).Substring(0, 6));
+                    myStock.code =Convert.ToString(stockList[i * 3 + 1]).Substring(0, 6);
                     myStock.name = (string)stockList[i * 3 + 2];
                     myStock.existsDate = new List<int>();
                     myStock.existsDate.Add(yesterday);
@@ -140,9 +129,7 @@ namespace stockBonus
             for (int i = 0; i < dt.Rows.Count; i++)
             {
                 stockModify stock = new stockModify();
-                string id = dt.Rows[i][0].ToString();
-                stock.code = Convert.ToInt32(id.Substring(0, 6));
-                stock.market = id.Substring(7, 2);
+                stock.code = dt.Rows[i][0].ToString();
                 stock.name= dt.Rows[i][1].ToString();
                 stock.date = Convert.ToInt32(dt.Rows[i][2].ToString());
                 stock.direction= dt.Rows[i][3].ToString();
@@ -187,7 +174,6 @@ namespace stockBonus
                             {
                                 stockFormat myStock = new stockFormat();
                                 myStock.name = stock.name;
-                                myStock.market = stock.market;
                                 myStock.code = stock.code;
                                 myStock.existsDate = new List<int>();
                                 myStock.existsDate.Add(stock.date);
@@ -214,7 +200,7 @@ namespace stockBonus
         /// </summary>
         /// <param name="date"></param>
         /// <returns></returns>
-        private List<stockFormat> getConstituentStock(int date)
+        static public List<stockFormat> getConstituentStock(int date)
         {
             List<stockFormat> list = new List<stockFormat>();
             foreach (var item in stockList)
@@ -231,28 +217,7 @@ namespace stockBonus
             return list;
         }
 
-        /// <summary>
-        /// 根据指定的日期，获取下一交易日的成分股列表
-        /// </summary>
-        /// <param name="date"></param>
-        /// <returns></returns>
-        private List<stockFormat> getNextConstituentStock(int date)
-        {
-            List<stockFormat> list = new List<stockFormat>();
-            date = TradeDays.GetNextTradeDay(date);
-            foreach (var item in stockList)
-            {
-                stockFormat stock = item.Value;
-                for (int i = 0; i < stock.existsDate.Count(); i = i + 2)
-                {
-                    if (date >= stock.existsDate[i] && date <= stock.existsDate[i + 1])
-                    {
-                        list.Add(stock);
-                    }
-                }
-            }
-            return list;
-        }
+        
 
     }
 }

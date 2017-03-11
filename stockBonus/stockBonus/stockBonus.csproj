@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="CsvApplication.cs" />
     <Compile Include="GetBonus.cs" />
+    <Compile Include="GetStockPercentage.cs" />
     <Compile Include="GetStocks.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
