@@ -42,7 +42,7 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
     <Reference Include="WAPIWrapperCSharp">
-      <HintPath>..\..\..\myTDF\OrientWebGW接口\OrientWebGW接口\OrientWebGW.Client\WAPIWrapperCSharp.dll</HintPath>
+      <HintPath>.\WAPIWrapperCSharp.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
