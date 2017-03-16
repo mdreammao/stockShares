@@ -123,16 +123,21 @@ namespace stockBonus
                     
                 }
             }
+
             //从stockModify.csv中读取指数成分股变动股票和日期
+
+            #region modify
+            int maxDate = yesterday;
+            /*
             DataTable dt = CsvApplication.OpenCSV("stockModify.csv");
             SortedDictionary<int, List<stockModify>> stockModifyList = new SortedDictionary<int, List<stockModify>>();
             for (int i = 0; i < dt.Rows.Count; i++)
             {
                 stockModify stock = new stockModify();
                 stock.code = dt.Rows[i][0].ToString();
-                stock.name= dt.Rows[i][1].ToString();
+                stock.name = dt.Rows[i][1].ToString();
                 stock.date = Convert.ToInt32(dt.Rows[i][2].ToString());
-                stock.direction= dt.Rows[i][3].ToString();
+                stock.direction = dt.Rows[i][3].ToString();
                 if (stockModifyList.ContainsKey(stock.date))
                 {
                     stockModifyList[stock.date].Add(stock);
@@ -144,11 +149,13 @@ namespace stockBonus
                     stockModifyList.Add(stock.date, stockList0);
                 }
             }
+
+
             //根据文档对我的数据进行处理，如果变动时间大于昨日时间，需要对我的股票列表进行修正
-            int maxDate = yesterday;
+            
             foreach (var stockList in stockModifyList)
             {
-                if (stockList.Value[0].date>yesterday )
+                if (stockList.Value[0].date > yesterday)
                 {
                     foreach (var stock in stockList.Value)
                     {
@@ -161,7 +168,7 @@ namespace stockBonus
                         }
                         if (stock.direction == "in")
                         {
-                            if (stockList.Value[0].date>maxDate)
+                            if (stockList.Value[0].date > maxDate)
                             {
                                 maxDate = stockList.Value[0].date;
                             }
@@ -183,11 +190,13 @@ namespace stockBonus
                     }
                 }
             }
+            */
+            #endregion
 
             //按照回测日期给股票列表进行修正
             foreach (var stock in list)
             {
-                if (stock.Value.existsDate[stock.Value.existsDate.Count()-1]==yesterday || stock.Value.existsDate[stock.Value.existsDate.Count() - 1] == maxDate)
+                if (stock.Value.existsDate[stock.Value.existsDate.Count() - 1] == yesterday || stock.Value.existsDate[stock.Value.existsDate.Count() - 1] == maxDate)
                 {
                     stock.Value.existsDate[stock.Value.existsDate.Count() - 1] = endDate;
                 }

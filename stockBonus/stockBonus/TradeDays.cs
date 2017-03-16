@@ -295,7 +295,7 @@ namespace stockBonus
         /// <returns>返回前一交易日</returns>
         public static int GetPreviousTradeDay(int today)
         {
-            int preIndex = tradeDaysOfDataBase.FindIndex(delegate (int i) { return i == today; }) - 1;
+            int preIndex = tradeDaysOfDataBase.FindIndex(delegate (int i) { return i >= today; }) - 1;
             if (preIndex < 0)
             {
                 return 0;

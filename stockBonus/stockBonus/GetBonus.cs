@@ -21,8 +21,8 @@ namespace stockBonus
 
         static private TradeDays myTradeDays = new TradeDays(20150101, 20171231);
 
-        //private int yesterday =TradeDays.GetPreviousTradeDay(Convert.ToInt32(DateTime.Now.ToString("yyyyMMdd")));
-        private int yesterday = 20170103;
+        private int yesterday =TradeDays.GetPreviousTradeDay(Convert.ToInt32(DateTime.Now.ToString("yyyyMMdd")));
+        //private int yesterday = 20170103;
         static public SortedDictionary<string, stockBonus> bonusList;
 
         static public SortedDictionary<string, stockBonus> evaluateBonusList=new SortedDictionary<string, stockBonus>();
