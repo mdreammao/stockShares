@@ -222,7 +222,7 @@ namespace stockBonus
                         }
                     }
                 }
-                if (lastYear==2 && thisYear==2)
+                if (lastYear>=2 && thisYear==2)
                 {
                     bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 2];
                     bonus.firstDate = dateList[dateList.Count() - 2];
@@ -231,7 +231,7 @@ namespace stockBonus
                     bonus.secondDate = dateList[dateList.Count() - 1];
                     bonus.secondStatus = "明确";
                 }
-                if (lastYear==2 && thisYear==1)
+                if (lastYear>=2 && thisYear==1)
                 {
                     bonus.firstBonus = historicalBonusList[historicalBonusList.Count() - 1];
                     bonus.firstDate = dateList[dateList.Count() - 1];
@@ -249,7 +249,7 @@ namespace stockBonus
                         bonus.secondBonus = historicalBonusList[historicalBonusList.Count() - 2] / historicalBonusList[historicalBonusList.Count() - 3] * historicalBonusList[historicalBonusList.Count() - 1];
                     }
                 }
-                if (lastYear==2 && thisYear==0)
+                if (lastYear>=2 && thisYear==0)
                 {
                     if (bonus.planBonus != 0)
                     {
